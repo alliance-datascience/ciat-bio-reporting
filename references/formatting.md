@@ -59,7 +59,7 @@ What it does:
 - Fills in the cover and keeps the template's table of contents.
 - Removes the sample pages (styles, tables, Latin filler).
 - Brings the content over with the template styles: titles, headings, paragraphs, bullets, numbered lists, quotes, captions, tables, images, bold, italics and links.
-- Points the table of contents at the report's heading styles (h1 and h2 by default), because some brand templates list only their "_Title" style there (MFL does), and tells Word to update it when the file is opened.
+- Points the table of contents at the report's heading styles (h1 and h2 by default), because some brand templates list only their "_Title" style there (MFL does). After saving, Microsoft Word fills in the table of contents and page numbers (macOS: AppleScript; Windows: COM), so the user never sees an "update fields?" prompt. Without Word, or with `--no-word`, the file asks to update fields when opened. `PY scripts/convert.py refresh <file.docx>` does the same for a file edited later.
 
 For another project's template without the CGIAR markers, use `--start-text` (first sample paragraph to replace), `--end-text` (first paragraph to keep at the end) and `--replace "sample text=new text"` for its cover.
 
@@ -84,7 +84,7 @@ For HTML or long documents, compare sentences: extract the text of the source (w
 
 ## 6. Deliver
 
-Tell the user where the file is and that, when opening it, Word will ask whether to update fields: they should answer yes so the table of contents fills in. Point out anything that could not be mapped (for example text boxes or footnotes) so they review it by hand, and ask them to review and approve the Word file. They may edit it in Word; the PDF is made from the file as they leave it.
+Tell the user where the file is. When Microsoft Word is installed, `apply` has already filled in the table of contents and page numbers, so the file opens with no prompt. Only if the output said "Microsoft Word not available", tell them Word will ask whether to update fields and they should answer yes. Point out anything that could not be mapped (for example text boxes or footnotes) so they review it by hand, and ask them to review and approve the Word file. They may edit it in Word; the PDF is made from the file as they leave it.
 
 ## 7. PDF for TIP (after the user approves the Word file)
 
@@ -94,7 +94,7 @@ Only after the user says the Word file is good. Ask them to close it in Word fir
 PY scripts/convert.py to-pdf "<result.docx>"            # writes <result>.pdf next to it; --output to choose
 ```
 
-- macOS and Windows: Microsoft Word opens a temporary copy, updates the table of contents and fields, and exports the PDF. The user's Word file is not modified. On macOS the first run may ask the user to allow Terminal (or Claude) to control Microsoft Word, and Word may ask for access to the folder: the user accepts.
+- macOS and Windows: Microsoft Word opens a temporary copy, updates the table of contents and fields, and exports the PDF. The user's Word file is not modified. No dialogs: the copy has no "update fields?" flag, alerts are off, and on macOS the work happens inside Word's own sandbox folder (~/Library/Containers/com.microsoft.Word/Data/tmp), so Word never asks for file access. The only dialog left is macOS's one-time security question the very first time (allow Terminal, or the Claude app, to control Microsoft Word); it cannot be skipped by a script, and after the user accepts it never appears again.
 - Without Word: LibreOffice converts it but does not update the table of contents; the script warns. Check the TOC, or ask the user to export from Word (File > Save As > PDF).
 - The script warns if the PDF is over 20 MB (TIP's limit per file).
 

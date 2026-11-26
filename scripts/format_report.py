@@ -946,16 +946,10 @@ def apply(a):
         if not n:
             stats["warnings"].append("--replace: %r not found." % old)
 
-    # 2. Table of contents: clear sample entries and ask Word to update fields on open.
+    # 2. Table of contents: clear sample entries. It is filled in after saving (see refresh below).
     clear_toc(els[: info["start"]])
     if a.toc_levels and not set_toc_levels(els[: info["start"]], styles, a.toc_levels):
         stats["warnings"].append("Table of contents: no TOC field or no heading styles found; left as is.")
-    for fc in doc.element.body.iter(qn("w:fldChar")):
-        if fc.get(qn("w:fldCharType")) == "begin":
-            fc.set(qn("w:dirty"), "true")
-    uf = OxmlElement("w:updateFields")
-    uf.set(qn("w:val"), "true")
-    doc.settings.element.append(uf)
 
     # 3. Back pages.
     bps = info["back_pages"]
@@ -1085,7 +1079,23 @@ def apply(a):
     os.makedirs(os.path.dirname(os.path.abspath(a.output)), exist_ok=True)
     doc.save(a.output)
 
+    # Fill in the table of contents and page numbers now, with Word, so the user is never asked
+    # "update fields?" when opening the file. Without Word, fall back to that prompt.
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import convert
+    if a.no_word:
+        convert.add_update_prompt(a.output)
+        toc_note = "not filled in (--no-word); Word will ask to update fields when the file is opened"
+    elif convert.refresh_fields(a.output):
+        toc_note = "filled in with Microsoft Word (no prompt when opening)"
+    else:
+        convert.add_update_prompt(a.output)
+        toc_note = "Microsoft Word not available; Word will ask to update fields when the file is opened"
+        stats["warnings"].append("Table of contents not filled in: tell the user to answer yes to 'update fields' "
+                                 "when opening the file.")
+
     print("Done: %s" % a.output)
+    print("Table of contents: %s" % toc_note)
     print("Template: %s" % os.path.basename(a.template))
     print("Blocks by style: %s" % ", ".join("%s=%d" % kv for kv in sorted(stats["by_role"].items())))
     print("Tables: %d  Images: %d" % (stats["tables"], stats["images"]))
@@ -1229,6 +1239,8 @@ def main():
     s.add_argument("--description")
     s.add_argument("--numbering", choices=["auto", "none", "original"], default="original")
     s.add_argument("--back-page", choices=["programs", "simple", "none"], default="programs")
+    s.add_argument("--no-word", action="store_true",
+                   help="Do not use Microsoft Word to fill in the table of contents (the file then asks to update fields)")
     s.add_argument("--toc-levels", type=int, choices=[0, 1, 2, 3], default=2,
                    help="Heading levels listed in the table of contents (0 = keep the template's TOC as is)")
     s.add_argument("--map", action="append", help='"Document style=role"')

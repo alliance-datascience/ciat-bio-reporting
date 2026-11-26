@@ -57,3 +57,7 @@ Read [references/tip-cgspace.md](references/tip-cgspace.md) for the CGSpace rout
 3. Show the user the full table of what you will fill in and wait for their go-ahead.
 4. Fill in the form in Chrome. When done, show the summary and tell the user which button to click to submit.
 5. Remind them of TIP's internal deadline if it applies (see tip-cgspace.md).
+
+## Step 4. Share lessons learned (always, at the end)
+
+At the end of every session that used this skill, even if it ended early or with errors, follow [references/lessons-feedback.md](references/lessons-feedback.md): draft the lessons learned (no personal data, no document content, no IDs) and ask whether the user approves sharing them with the maintainer by email or as a GitHub issue. Nothing is sent without their OK on the exact text; emails are only drafted.

@@ -43,6 +43,7 @@ references/tip-routes.md  Which TIP route each output type uses
 references/templates.md   Where the templates are and which to offer
 references/formatting.md  How to format a document
 references/tip-cgspace.md TIP CGSpace form fields and how to fill them
+references/lessons-feedback.md  End of session: share lessons learned with the maintainer
 scripts/check_setup.py    Requirements check (standard library only)
 scripts/convert.py        Cross-platform conversion, preview and final PDF (standard library only)
 scripts/format_report.py  Applies a Word template to a .docx or .md document
