@@ -9,7 +9,7 @@ It replies in the language the user writes in and works on Windows, macOS and Li
 
 ## Install
 
-Clone this repository into your Claude Code skills folder (you need access to the alliance-datascience organization):
+Clone this repository into your Claude Code skills folder (the repository is public; no GitHub account is needed):
 
 ```bash
 # macOS / Linux
