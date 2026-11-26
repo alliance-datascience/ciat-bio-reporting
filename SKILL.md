@@ -45,7 +45,8 @@ Read [references/formatting.md](references/formatting.md) and follow it. In shor
    - Science Program or Accelerator: ask which one (list in [references/templates.md](references/templates.md)) and use its template. Download only that template, with the user's permission, as templates.md explains.
    - Another project: ask whether they have the project's or donor's template. If yes, ask them to share it. If not, show the general template options from references/templates.md and let them choose.
 3. Run `scripts/format_report.py` and check the result with its `check` command.
-4. Deliver the Word file and ask whether they want to submit it to TIP.
+4. Deliver the Word file and ask the user to review it. Do not make the PDF before they approve the Word file.
+5. When they approve it, make the PDF with `scripts/convert.py to-pdf` (Word updates the table of contents first), look at the first pages, and ask whether they want to submit the PDF to TIP. TIP receives the PDF, not the Word file.
 
 ## Step 3. Submit to TIP
 

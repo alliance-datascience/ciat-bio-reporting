@@ -44,7 +44,7 @@ references/templates.md   Where the templates are and which to offer
 references/formatting.md  How to format a document
 references/tip-cgspace.md TIP CGSpace form fields and how to fill them
 scripts/check_setup.py    Requirements check (standard library only)
-scripts/convert.py        Cross-platform conversion and preview (standard library only)
+scripts/convert.py        Cross-platform conversion, preview and final PDF (standard library only)
 scripts/format_report.py  Applies a Word template to a .docx or .md document
 scripts/serve_file.py     Serves one local file to the TIP page for large uploads (127.0.0.1 only, auto-stops)
 scripts/tip_helpers.js    Browser-side helpers to fill and verify the TIP CGSpace form

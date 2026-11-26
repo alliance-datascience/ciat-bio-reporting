@@ -84,4 +84,18 @@ For HTML or long documents, compare sentences: extract the text of the source (w
 
 ## 6. Deliver
 
-Tell the user where the file is and that, when opening it, Word will ask whether to update fields: they should answer yes so the table of contents fills in. Point out anything that could not be mapped (for example text boxes or footnotes) so they review it by hand. Then ask whether they want to submit it to TIP.
+Tell the user where the file is and that, when opening it, Word will ask whether to update fields: they should answer yes so the table of contents fills in. Point out anything that could not be mapped (for example text boxes or footnotes) so they review it by hand, and ask them to review and approve the Word file. They may edit it in Word; the PDF is made from the file as they leave it.
+
+## 7. PDF for TIP (after the user approves the Word file)
+
+Only after the user says the Word file is good. Ask them to close it in Word first, so their last edits are saved.
+
+```
+PY scripts/convert.py to-pdf "<result.docx>"            # writes <result>.pdf next to it; --output to choose
+```
+
+- macOS and Windows: Microsoft Word opens a temporary copy, updates the table of contents and fields, and exports the PDF. The user's Word file is not modified. On macOS the first run may ask the user to allow Terminal (or Claude) to control Microsoft Word, and Word may ask for access to the folder: the user accepts.
+- Without Word: LibreOffice converts it but does not update the table of contents; the script warns. Check the TOC, or ask the user to export from Word (File > Save As > PDF).
+- The script warns if the PDF is over 20 MB (TIP's limit per file).
+
+Read the first pages of the PDF (Read tool with `pages`) and check the cover, that the table of contents lists the sections with page numbers, and the first content page. Tell the user where the PDF is, then ask whether to submit it to TIP (SKILL.md Step 3), uploading the PDF.
