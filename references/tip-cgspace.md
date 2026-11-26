@@ -34,6 +34,7 @@ Form mapped on 2026-11-26 by reading an existing submission (read only).
 - File upload: the file input `#fileupload` is outside the Save Draft form; the page sends the file with the draft (POST /saveSubmission) when Save Draft is clicked, so attach files before saving. Files up to 10 MB: use the browser tool's file upload. Larger files (most Canva PDFs are 9 to 13 MB): with the user's OK, run `PY scripts/serve_file.py "<file>"` in the background (127.0.0.1 only, one file, stops after 3 minutes) and follow its docstring to put the file in `#fileupload` from the page; or ask the user to attach it. A 12.6 MB PDF took about 60 seconds to save. Then open the draft and confirm the stored file has the same size as the original (fetch the "Download File" link and compare bytes).
 - On reload, TIP sets "Does this result contribute to a Science Program or Accelerator?" back to Yes and the ToC mapping to Yes when the project is linked to a program. Before every Save Draft or Send to review, set the contribution to what the user said again; otherwise saving fails with "Select the High Level Output for the Theory of Change mapping".
 - Do not set a Research Lever or "edited by Science Writing" unless the user says so (both optional).
+- Before telling the user a draft is ready to send, check every label ending in "*" in tabs A to D has a value. Reading labels with a length cap missed the required Subjects field on the first run (2026-11-26).
 - Selecting a project auto-completes fields from the project record (marked with a light-bulb icon). A project "Contributing to CGIAR Portfolio" ticks "Science Program(s) and Accelerator(s)" with its program, sets "Does this result contribute...?" to Yes and the detailed ToC mapping to Yes. Save Draft then fails with "Select the High Level Output for the Theory of Change mapping". Re-check these after choosing the project and set them to what the user said: answering "No" to the contribution question hides the ToC mapping, while the program stays tagged as the project's association.
 - Science Program is not the same as Lever. "CGIAR Climate Action science program" belongs to the CGIAR 2025-2030 portfolio (fields "Science Program(s) and Accelerator(s)" and "Does this result contribute...?"). "Lever3: Climate Action" is the Alliance's internal research area the staff belong to (field "Research Levers and Platforms", `lever_field`, and the "Lever3" tag next to staff authors). TIP fills the Lever from the authors. Never infer one from the other: ask about the Science Program separately. If the user says the output does not contribute to a Science Program, remove the program the project auto-filled (untick "Science Program(s) and Accelerator(s)" and clear its selection). On reload TIP may tick that box again from the project, but with no program selected, which is fine.
 - AGROVOC terms can be stored with their preferred label (e.g. "capacity development" was saved as "Capacity building").
@@ -85,6 +86,9 @@ Source: E = extract from the document or link; A = ask the user; E/A = extract a
 | Usage Rights | Yes | A | License |
 | Sponsors | No | E/A | Donors |
 | Research Levers and Platforms, Programs and Accelerators, Collections | No | A | |
+| Subjects (`alliance_subject`) | Yes | E/A | Alliance subject terms, a fixed list of 64 (e.g. GERMPLASM CONSERVATION, NEGLECTED AND UNDERUTILIZED SPECIES, PLANT GENETIC RESOURCES, CONSERVATION AND USE, CAPACITY DEVELOPMENT). Propose from the content and let the user choose. Send to review fails without it |
+| Sustainable Development Goals | No | auto | Filled from the project; review it |
+| CGIAR Impact Area (`impact_area_field`) | No | A | Five options; accepted items of the same project are a good reference |
 | Notes | No | A | |
 | DOI, Preprint | No | E | |
 
@@ -99,7 +103,7 @@ Source: E = extract from the document or link; A = ask the user; E/A = extract a
 Always A: who owns the rights (CIAT, Bioversity, both, third parties), legal restrictions, commercialization potential, whether it needs further development. When in doubt, the form refers to the Alliance legal team.
 
 ### E. Information Team (#section-E-container)
-Internal use by the library. Do not fill in.
+Internal use by the library. Do not fill in. (Subjects, SDGs and Impact Area are NOT here: they are in tab B.)
 
 ### F. Share Submission (#section-F-container)
 Optional: share the submission with colleagues (user search). Ask.
