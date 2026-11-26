@@ -637,6 +637,8 @@ def read_html(path, stats, skip_ids=(), skip_containing=()):
         root = _parse_html(f.read())
     blocks = []
     skip_ids = set(skip_ids or ())
+    badge = {"n": None}  # a number shown as a decorative badge, prefixed to the next heading
+    is_badge = lambda n: isinstance(n, _Node) and not _has_block(n) and re.fullmatch(r"\d{1,3}", _text(n) or "")
 
     def skipped(n):
         if n.tag in HTML_SKIP_TAGS or n.attrs.get("id") in skip_ids or n.attrs.get("hidden") is not None:
@@ -648,8 +650,13 @@ def read_html(path, stats, skip_ids=(), skip_containing=()):
         return False
 
     def add_par(role, runs):
-        if "".join(r["text"] for r in runs).strip():
-            blocks.append({"t": "par", "role": role, "runs": runs})
+        if not "".join(r["text"] for r in runs).strip():
+            return
+        if badge["n"] is not None and role in ("h1", "h2", "h3"):
+            runs = [plain_run("%d. " % badge["n"])] + runs
+        if role in ("h1", "h2", "h3"):
+            badge["n"] = None
+        blocks.append({"t": "par", "role": role, "runs": runs})
 
     def add_img(n):
         src = n.attrs.get("src") or ""
@@ -706,8 +713,11 @@ def read_html(path, stats, skip_ids=(), skip_containing=()):
             t = _text(n)
             if not t or KICKER.match(t):
                 return
+            if is_badge(n):
+                badge["n"] = int(t)
+                return
             parent = n.parent
-            sibs = _elements(parent) if parent else []
+            sibs = [c for c in (_elements(parent) if parent else []) if not is_badge(c)]
             first = bool(sibs) and sibs[0] is n
             following = len(sibs) > 1 and sibs.index(n) < len(sibs) - 1
             short = len(t) <= 90 and not re.search(r"[.!?:;]$", t)

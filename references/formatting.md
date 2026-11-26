@@ -8,7 +8,8 @@ The script is `scripts/format_report.py` (Python 3.8+ with python-docx). Paths a
 |---|---|
 | .docx | Use as is |
 | .md | Use as is; images with relative paths are looked up next to the .md |
-| .doc, .rtf, .odt, .html | Convert first: `PY scripts/convert.py to-docx "<file>"`. It uses Word (Windows), textutil (macOS) or LibreOffice. If none is available, ask the user to open the file and save it as .docx |
+| .html, .htm (a web page or HTML report) | Use as is. h2 becomes a level-1 heading, h3 level 2, card titles (a short text box opening a card) level 3; "Section 05"-style labels are dropped and number badges (1, 01) are prefixed to the next heading. Navigation, side bars, footers, forms and embedded frames are skipped. Leave out other parts with `--html-skip <element id>` and `--html-skip-containing "<text>"` (only drops single text boxes, never whole sections). Ask the user which web-only parts (forms, buttons, "click here") do not belong in the report |
+| .doc, .rtf, .odt | Convert first: `PY scripts/convert.py to-docx "<file>"`. It uses Word (Windows), textutil (macOS) or LibreOffice. If none is available, ask the user to open the file and save it as .docx |
 | Google Doc | Ask them to download it as .docx |
 | PDF | Ask: do they have the original Word? If not, is the PDF ready to submit as is? Converting PDF to Word loses structure; do not do it without saying so |
 | Text pasted in the chat | Save it as .md in a working folder and continue |
@@ -70,11 +71,15 @@ PY scripts/convert.py preview "<result.docx>" --outdir "<working folder>"
 
 `check` lists leftover sample text, paragraphs with styles that are not from the template, empty headings and the count of headings, tables and images. Compare with the original: no content may be lost. `preview` makes a PDF (Word or LibreOffice) or, on macOS without them, a thumbnail of the first page; look at it with the Read tool. If no preview tool is available, skip it and ask the user to look at the file.
 
+## Checking that no content was lost
+
+For HTML or long documents, compare sentences: extract the text of the source (without headings and labels) and check that every sentence of more than 30 characters appears in the result. Report what is missing and why (intentionally skipped, or lost). A text filter that is too broad can drop real content: on 2026-11-26 "record your response" also removed an About paragraph; the precise phrase fixed it.
+
 ## Known limitations (2026-11-26)
 
 - Footnotes and text boxes from the original document are not copied; the script counts them and warns. They have to be moved by hand.
 - Numbered lists follow the template style's numbering; separate lists may not restart at 1.
-- Tested with the real Report-Multifunctional Landscapes template. Run `inspect` on any other template the first time and adjust if something is not detected.
+- Tested with the real Report-Multifunctional Landscapes template, from .docx, .md and a real HTML document (MOSAIC Vision & Foundations). Run `inspect` on any other template the first time and adjust if something is not detected.
 
 ## 6. Deliver
 

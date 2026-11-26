@@ -2,7 +2,7 @@
 
 A Claude Code skill for Alliance of Bioversity International and CIAT staff that:
 
-1. Formats reports (Word, Markdown, or older Word/OpenDocument files) with the official CGIAR Science Program or Accelerator Word template, another project's template, or a clean unbranded format.
+1. Formats reports (Word, Markdown, HTML web documents, or older Word/OpenDocument files) with the official CGIAR Science Program or Accelerator Word template, another project's template, or a clean unbranded format.
 2. Guides the submission of any knowledge product to the Alliance TIP platform (https://tip.alliance.cgiar.org): reports, briefs, presentations, digital tools, platforms, links, repositories, software and datasets. Claude fills in the form; the user always clicks the final submit button.
 
 It replies in the language the user writes in and works on Windows, macOS and Linux.
