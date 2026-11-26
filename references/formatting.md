@@ -1,0 +1,81 @@
+# Formatting a document with a template
+
+The script is `scripts/format_report.py` (Python 3.8+ with python-docx). Paths are relative to this skill's folder. `PY` below means `python3` on macOS and Linux, `py` (or `python`) on Windows. Requirements are checked first with setup.md.
+
+## 1. Prepare the input
+
+| What the user brings | What to do |
+|---|---|
+| .docx | Use as is |
+| .md | Use as is; images with relative paths are looked up next to the .md |
+| .doc, .rtf, .odt, .html | Convert first: `PY scripts/convert.py to-docx "<file>"`. It uses Word (Windows), textutil (macOS) or LibreOffice. If none is available, ask the user to open the file and save it as .docx |
+| Google Doc | Ask them to download it as .docx |
+| PDF | Ask: do they have the original Word? If not, is the PDF ready to submit as is? Converting PDF to Word loses structure; do not do it without saying so |
+| Text pasted in the chat | Save it as .md in a working folder and continue |
+
+Never modify the user's original file. The output goes next to the original with the template suffix, for example `Final_report_ClimateAction.docx`.
+
+## 2. Choose the template
+
+See templates.md. If the template is new in this session, inspect it first:
+
+```bash
+PY scripts/format_report.py inspect "<template.dotx>"
+```
+
+It lists the styles and the cover, table of contents and back-page markers it found, and the ones missing. If something is missing, tell the user before going on.
+
+For another project's template shared by the user, inspection is mandatory: confirm with them which style is the title, which are the headings and where the body starts.
+
+## 3. Ask for the options (one AskUserQuestion round)
+
+- Heading numbering: number automatically (1., 1.1 on the first two levels; summary, references, annexes and similar stay unnumbered), removing any manual numbering / remove all numbering / keep the document's own numbering.
+- Back page (Report-<Program> templates only): with program logos / simple / no back page.
+- Cover: title, date and description. Propose the document's title, the date as "Month YYYY" and a one-line description taken from the summary; the user confirms or corrects.
+
+Before applying, check how the document will be read:
+
+```bash
+PY scripts/format_report.py structure "<document>"
+```
+
+If headings are not detected (the document uses its own styles, or only bold text), pass the mapping with `--map "Style name=h1"` (roles: title, subtitle, h1, h2, h3, body, bullet1, bullet2, num1, num2, quote, caption, source).
+
+## 4. Apply
+
+```bash
+PY scripts/format_report.py apply \
+  --template "<template>" \
+  --input "<document.docx|.md>" \
+  --output "<result.docx>" \
+  --title "<title>" --date "<date>" --description "<description>" \
+  --numbering auto|none|original \
+  --back-page programs|simple|none
+```
+
+What it does:
+- Fills in the cover and keeps the template's table of contents.
+- Removes the sample pages (styles, tables, Latin filler).
+- Brings the content over with the template styles: titles, headings, paragraphs, bullets, numbered lists, quotes, captions, tables, images, bold, italics and links.
+- Tells Word to update the table of contents when the file is opened.
+
+For another project's template without the CGIAR markers, use `--start-text` (first sample paragraph to replace), `--end-text` (first paragraph to keep at the end) and `--replace "sample text=new text"` for its cover.
+
+## 5. Check before delivering
+
+```bash
+PY scripts/format_report.py check "<result.docx>"
+PY scripts/convert.py preview "<result.docx>" --outdir "<working folder>"
+```
+
+`check` lists leftover sample text, paragraphs with styles that are not from the template, empty headings and the count of headings, tables and images. Compare with the original: no content may be lost. `preview` makes a PDF (Word or LibreOffice) or, on macOS without them, a thumbnail of the first page; look at it with the Read tool. If no preview tool is available, skip it and ask the user to look at the file.
+
+## Known limitations (2026-11-26)
+
+- Footnotes and text boxes from the original document are not copied; the script counts them and warns. They have to be moved by hand.
+- Numbered lists follow the template style's numbering; separate lists may not restart at 1.
+- Tested with a synthetic template that mimics Report-Climate Action. Still to be tested with the real templates: run `inspect` on each the first time and adjust if something is not detected.
+
+## 6. Deliver
+
+Tell the user where the file is and that, when opening it, Word will ask whether to update fields: they should answer yes so the table of contents fills in. Point out anything that could not be mapped (for example text boxes or footnotes) so they review it by hand. Then ask whether they want to submit it to TIP.
