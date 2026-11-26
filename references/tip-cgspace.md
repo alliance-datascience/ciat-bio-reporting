@@ -11,7 +11,31 @@ Form mapped on 2026-11-26 by reading an existing submission (read only).
 
 1. Check the user's submission list to make sure the output is not already in TIP (search by title). If it is, ask whether they want to update it instead of creating a new one.
 2. If the output has a DOI, use the form's DOI Auto-Complete tool and then verify every autocompleted value: they remain editable in TIP and can be wrong.
-3. [To confirm on the first real use] Which buttons the new form has (save draft, next, submit). Read them with JavaScript without clicking and record them here.
+3. Form buttons (checked 2026-11-26 on /CgspaceSubmission/create): **Exit Form** (`#cancel-button`), **Save Draft** (`#draft`) and **Send to review** (`#send_final`, the final submit: only the user clicks it). Opening /create does not create a draft; nothing is stored until Save Draft or Send to review. The DOI Auto-Complete box (`#searchDOI`) is at the top of General Information. There is also a Generate Citation button (`#generate-citation`). A new submission shows five tabs; "Information Team" only appears on existing submissions.
+4. Before Save Draft, ask the user: saving a draft stores the submission in TIP under their name (visible to them in the Draft filter). It is safer than leaving the form half-filled, but it is still a write to TIP.
+5. While you type, the form shows "Autosaved HH:MM:SS". That is a local browser save, not a TIP draft: the submission count in /CgspaceSubmission does not change. Until Save Draft or Send to review, the filled form lives only in that browser tab. Check the count (fetch /CgspaceSubmission and read "N Submission") instead of trusting the label.
+
+## Filling tips (learned 2026-11-26, first real run)
+
+- Every list is a select2. Plain lists (authorship, collection, type, languages, countries, regions, corresponding author, open access, usage rights) can be set with jQuery: `jQuery('#id').val([...]).trigger('change')`, choosing option values by their exact text. IDs: `first_name01` (title), `authorship_field`, `p_collection`, `p_type`, `c_author`, `abstract_field`, `date_publication` (YYYY-MM-DD), `languages`, `countries`, `regions`, `open_access`, `usage_rigth` (sic), `selectAgrovoc`, `selectAgrovocES`, `fileupload`.
+- Search lists (authors `find_author`, affiliations, project `find_project`, sponsors, AGROVOC) load results from the server: open with `jQuery(sel).select2('open')`, type at least 3 letters, read `.select2-results__option`, move with Down until `.select2-results__option--highlighted` is the right one, then press Return. Verify before each Return.
+- Staff directory names can differ from the document: e.g. "Wanjiku, Beatrice" is "Githu, Beatrice Wanjiku"; "Méndez, Andrés Camilo" is "Mendez Alzate, Andres Camilo" (External, found by searching the given names). Match by email when in doubt, and tell the user about the difference.
+- Choosing "International Center for Tropical Agriculture" as affiliation fills country Kenya and the Kenya office website from TIP's registry; point it out to the user.
+- Sponsors with the same name exist in several countries (Department of Foreign Affairs and Trade: Ireland and Australia). Pick by the country stated in the document.
+- "Has it been externally peer-reviewed?" is disabled for Reports.
+- The year field needs a full date. If the user only gives a year, the PDF metadata creation date (pypdf `reader.metadata`) is evidence-based; say which date you used.
+- File upload: the browser tool accepts up to 10 MB per call. Larger files (most Canva PDFs are 9 to 13 MB) must be attached by the user in the Keywords/Files tab.
+- Do not set a Research Lever or "edited by Science Writing" unless the user says so (both optional).
+
+## Patterns from accepted submissions
+
+Look at two or three items of the same project already in CGSpace and reuse their project-level values (they were accepted by the library). The CGSpace REST API returns an item's full metadata without signing in:
+
+```
+https://cgspace.cgiar.org/server/api/core/items/<item uuid from the cgspace.cgiar.org/items/<uuid> link>
+```
+
+Useful fields: cg.authorship.types, cg.contributor.affiliation, cg.contributor.donor, cg.identifier.project, cg.coverage.region, dcterms.accessRights, dcterms.license, dcterms.type, cg.subject.*. To check for duplicates, search `https://cgspace.cgiar.org/server/api/discover/search/objects?query="<title words>"&dsoType=ITEM`.
 
 ## Fields by tab
 
