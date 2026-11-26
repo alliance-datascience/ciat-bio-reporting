@@ -46,12 +46,13 @@ references/tip-cgspace.md TIP CGSpace form fields and how to fill them
 scripts/check_setup.py    Requirements check (standard library only)
 scripts/convert.py        Cross-platform conversion and preview (standard library only)
 scripts/format_report.py  Applies a Word template to a .docx or .md document
+scripts/serve_file.py     Serves one local file to the TIP page for large uploads (127.0.0.1 only, auto-stops)
 ```
 
 ## Status
 
 - Formatting: tested with the real Report-Multifunctional Landscapes template (2026-11-26). Other templates are expected to share its structure; `inspect` confirms it on first use.
-- TIP: CGSpace form mapped; not yet tested end to end. Dataverse, Innovation Dev, Capacity Sharing, OICR and Policy Change routes are not mapped yet.
+- TIP: CGSpace form mapped and tested on 2026-11-26 up to a saved draft with a 12.6 MB PDF attached. Dataverse, Innovation Dev, Capacity Sharing, OICR and Policy Change routes are not mapped yet.
 
 ## Known limitations
 
