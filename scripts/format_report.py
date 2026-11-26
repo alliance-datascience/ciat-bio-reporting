@@ -59,7 +59,7 @@ ROLES = {
 HEADING_ROLES = ("title", "subtitle", "h1", "h2", "h3")
 # Front and back matter that stays unnumbered (English, Spanish, French, Portuguese).
 UNNUMBERED = re.compile(
-    r"^(executive summary|summary|abstract|acknowledg|references|bibliograph|annex|appendix|"
+    r"^(about this document|executive summary|summary|abstract|acknowledg|references|bibliograph|annex|appendix|"
     r"acronyms|abbreviations|contents|foreword|preface|"
     r"resumen|agradecimiento|referencias|bibliograf|anexo|apéndice|siglas|acrónimos|contenido|"
     r"índice|prólogo|prefacio|"
@@ -542,12 +542,228 @@ def read_md(path, stats):
     return blocks
 
 
-def read_input(path, mapping, stats):
+# ---------------------------------------------------------------- HTML input
+
+HTML_SKIP_TAGS = {"head", "script", "style", "nav", "aside", "footer", "iframe", "form", "button",
+                  "svg", "noscript", "template", "select", "input", "textarea"}
+HTML_VOID = {"img", "br", "hr", "meta", "link", "input", "source", "wbr", "col", "area", "base", "embed", "param", "track"}
+HTML_BLOCK = {"p", "div", "section", "article", "main", "header", "ul", "ol", "li", "table", "tr", "td", "th",
+              "blockquote", "h1", "h2", "h3", "h4", "h5", "h6", "figure", "figcaption", "dl", "dt", "dd", "pre"}
+KICKER = re.compile(r"^(section|secci[oó]n|chapter|cap[ií]tulo|part|parte)\s+\d+\b", re.I)
+
+
+class _Node(object):
+    def __init__(self, tag, attrs, parent=None):
+        self.tag, self.attrs, self.parent, self.children = tag, dict(attrs), parent, []
+
+
+def _parse_html(text):
+    from html.parser import HTMLParser
+
+    class P(HTMLParser):
+        def __init__(self):
+            HTMLParser.__init__(self, convert_charrefs=True)
+            self.root = _Node("root", [])
+            self.cur = self.root
+
+        def handle_starttag(self, tag, attrs):
+            n = _Node(tag, attrs, self.cur)
+            self.cur.children.append(n)
+            if tag not in HTML_VOID:
+                self.cur = n
+
+        def handle_endtag(self, tag):
+            n = self.cur
+            while n is not None and n.tag != tag:
+                n = n.parent
+            if n is not None and n.parent is not None:
+                self.cur = n.parent
+
+        def handle_data(self, data):
+            self.cur.children.append(data)
+
+    p = P()
+    p.feed(text)
+    return p.root
+
+
+def _elements(node):
+    return [c for c in node.children if isinstance(c, _Node)]
+
+
+def _has_block(node):
+    return any(isinstance(c, _Node) and (c.tag in HTML_BLOCK or _has_block(c)) for c in node.children)
+
+
+def _html_runs(node, fmt=None):
+    fmt = fmt or {"b": False, "i": False, "link": None}
+    runs = []
+    for c in node.children:
+        if isinstance(c, str):
+            if c.strip() or (c and runs):
+                r = plain_run(re.sub(r"\s+", " ", c))
+                r.update(b=fmt["b"], i=fmt["i"], link=fmt["link"])
+                runs.append(r)
+        elif c.tag == "br":
+            runs.append(plain_run(" "))
+        elif c.tag in HTML_SKIP_TAGS or c.tag == "img":
+            continue
+        else:
+            f = dict(fmt)
+            if c.tag in ("strong", "b"):
+                f["b"] = True
+            if c.tag in ("em", "i"):
+                f["i"] = True
+            if c.tag == "a" and re.match(r"(https?:|mailto:)", c.attrs.get("href") or ""):
+                f["link"] = c.attrs["href"]
+            runs += _html_runs(c, f)
+    # Trim outer whitespace and merge spaces.
+    if runs:
+        runs[0]["text"] = runs[0]["text"].lstrip()
+        runs[-1]["text"] = runs[-1]["text"].rstrip()
+    return [r for r in runs if r["text"]]
+
+
+def _text(node):
+    return "".join(r["text"] for r in _html_runs(node)).strip()
+
+
+def read_html(path, stats, skip_ids=(), skip_containing=()):
+    """Read a web page into blocks. h1 -> title, h2 -> h1, h3 -> h2, h4+ -> h3. A short text box that
+    opens a card (followed by more content) becomes a level-3 heading; "Section 05"-style labels are
+    dropped. Navigation, side bars, footers, forms and embedded frames are skipped."""
+    base = os.path.dirname(os.path.abspath(path))
+    with open(path, encoding="utf-8", errors="replace") as f:
+        root = _parse_html(f.read())
+    blocks = []
+    skip_ids = set(skip_ids or ())
+
+    def skipped(n):
+        if n.tag in HTML_SKIP_TAGS or n.attrs.get("id") in skip_ids or n.attrs.get("hidden") is not None:
+            return True
+        # Text-based skips only apply to leaf boxes (a paragraph, a text box), never to whole sections.
+        if skip_containing and not _has_block(n):
+            t = _text(n).lower()
+            return any(s.lower() in t for s in skip_containing)
+        return False
+
+    def add_par(role, runs):
+        if "".join(r["text"] for r in runs).strip():
+            blocks.append({"t": "par", "role": role, "runs": runs})
+
+    def add_img(n):
+        src = n.attrs.get("src") or ""
+        blob = None
+        if src.startswith("data:"):
+            m = re.match(r"data:image/(png|jpe?g|gif|bmp|tiff?);base64,(.*)", src, re.S)
+            if m:
+                import base64
+                blob = base64.b64decode(m.group(2))
+        elif not re.match(r"https?:", src) and os.path.exists(os.path.join(base, src)):
+            if os.path.splitext(src)[1].lower() in (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff"):
+                with open(os.path.join(base, src), "rb") as fh:
+                    blob = fh.read()
+        if blob:
+            blocks.append({"t": "img", "blob": blob, "cx": None})
+        elif src:
+            stats["lost_images"] += 1
+
+    def walk(n):
+        if isinstance(n, str):
+            return
+        if skipped(n):
+            return
+        tag = n.tag
+        if tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+            add_par({"h1": "title", "h2": "h1", "h3": "h2"}.get(tag, "h3"), _html_runs(n))
+        elif tag in ("p", "figcaption", "dt", "dd", "pre"):
+            for img in [c for c in _elements(n) if c.tag == "img"]:
+                add_img(img)
+            add_par("caption" if tag == "figcaption" else "body", _html_runs(n))
+        elif tag == "img":
+            add_img(n)
+        elif tag in ("ul", "ol"):
+            level = sum(1 for a in _ancestors(n) if a.tag in ("ul", "ol"))
+            kind = "bullet" if tag == "ul" else "num"
+            for li in [c for c in _elements(n) if c.tag == "li"]:
+                inline = _Node("li", [])
+                inline.children = [c for c in li.children if not (isinstance(c, _Node) and c.tag in ("ul", "ol"))]
+                add_par(kind + ("2" if level else "1"), _html_runs(inline))
+                for sub in [c for c in _elements(li) if c.tag in ("ul", "ol")]:
+                    walk(sub)
+        elif tag == "table":
+            rows = []
+            for tr in _iter_tag(n, "tr"):
+                rows.append([_html_runs(td) for td in _elements(tr) if td.tag in ("td", "th")])
+            rows = [r for r in rows if r]
+            if rows:
+                ncol = max(len(r) for r in rows)
+                rows = [r + [[] for _ in range(ncol - len(r))] for r in rows]
+                blocks.append({"t": "table", "rows": rows, "grid": [[(i, j) for j in range(ncol)] for i in range(len(rows))]})
+        elif tag == "blockquote":
+            add_par("quote", _html_runs(n))
+        elif not _has_block(n):
+            t = _text(n)
+            if not t or KICKER.match(t):
+                return
+            parent = n.parent
+            sibs = _elements(parent) if parent else []
+            first = bool(sibs) and sibs[0] is n
+            following = len(sibs) > 1 and sibs.index(n) < len(sibs) - 1
+            short = len(t) <= 90 and not re.search(r"[.!?:;]$", t)
+            if short and first and following:
+                in_section_without_heading = parent.tag == "section" and not any(
+                    c.tag in ("h1", "h2", "h3") for c in _elements(parent))
+                add_par("h1" if in_section_without_heading else "h3", _html_runs(n))
+            else:
+                add_par("body", _html_runs(n))
+        else:
+            # Block container: loose text between blocks becomes its own paragraph.
+            loose = []
+            for c in n.children:
+                if isinstance(c, _Node) and (c.tag in HTML_BLOCK or _has_block(c)):
+                    if loose:
+                        tmp = _Node("span", [])
+                        tmp.children = loose
+                        add_par("body", _html_runs(tmp))
+                        loose = []
+                    walk(c)
+                else:
+                    loose.append(c)
+            if loose:
+                tmp = _Node("span", [])
+                tmp.children = loose
+                add_par("body", _html_runs(tmp))
+
+    body = next(iter(_iter_tag(root, "body")), root)
+    walk(body)
+    return blocks
+
+
+def _ancestors(n):
+    p = n.parent
+    while p is not None:
+        yield p
+        p = p.parent
+
+
+def _iter_tag(n, tag):
+    for c in _elements(n):
+        if c.tag == tag:
+            yield c
+        else:
+            for x in _iter_tag(c, tag):
+                yield x
+
+
+def read_input(path, mapping, stats, html_skip=(), html_skip_containing=()):
     ext = os.path.splitext(path)[1].lower()
     if ext == ".docx":
         return read_docx(path, mapping, stats)
     if ext in (".md", ".markdown", ".txt"):
         return read_md(path, stats)
+    if ext in (".html", ".htm"):
+        return read_html(path, stats, html_skip, html_skip_containing)
     sys.exit("Unsupported input format: %s. Convert it to .docx first (see references/formatting.md)." % ext)
 
 
@@ -743,7 +959,7 @@ def apply(a):
         anchor = doc.element.body.find(qn("w:sectPr"))
 
     # 5. Content.
-    blocks = read_input(a.input, mapping, stats) if a.input else []
+    blocks = read_input(a.input, mapping, stats, a.html_skip or (), a.html_skip_containing or ()) if a.input else []
     number_headings(blocks, a.numbering, stats)
     if a.title and not any(b["t"] == "par" and b["role"] == "title" for b in blocks[:3]):
         blocks.insert(0, {"t": "par", "role": "title", "runs": [plain_run(a.title)]})
@@ -890,9 +1106,9 @@ def inspect(path):
                                                    " ".join(flags), text_of(el).strip()[:60]))
 
 
-def structure(path, map_args):
+def structure(path, map_args, html_skip=(), html_skip_containing=()):
     stats = new_stats()
-    blocks = read_input(path, parse_pairs(map_args), stats)
+    blocks = read_input(path, parse_pairs(map_args), stats, html_skip, html_skip_containing)
     count = {}
     for b in blocks:
         if b["t"] == "par":
@@ -955,6 +1171,8 @@ def main():
     s = sub.add_parser("structure", help="show how an input document will be read")
     s.add_argument("input")
     s.add_argument("--map", action="append", help='"Document style=role" (roles: %s)' % ", ".join(ROLES))
+    s.add_argument("--html-skip", action="append", help="HTML input: id of an element to leave out (repeatable)")
+    s.add_argument("--html-skip-containing", action="append", help="HTML input: leave out text boxes containing this text (repeatable)")
     s = sub.add_parser("check", help="review a formatted result")
     s.add_argument("file")
     s = sub.add_parser("apply", help="format a document with a template")
@@ -970,11 +1188,13 @@ def main():
     s.add_argument("--replace", action="append", help='"sample text=new text" (whole paragraph)')
     s.add_argument("--start-text", help="Text of the first sample paragraph to replace")
     s.add_argument("--end-text", help="Text of the first paragraph to keep at the end")
+    s.add_argument("--html-skip", action="append", help="HTML input: id of an element to leave out (repeatable)")
+    s.add_argument("--html-skip-containing", action="append", help="HTML input: leave out text boxes containing this text (repeatable)")
     a = ap.parse_args()
     if a.cmd == "inspect":
         inspect(a.template)
     elif a.cmd == "structure":
-        structure(a.input, a.map)
+        structure(a.input, a.map, a.html_skip or (), a.html_skip_containing or ())
     elif a.cmd == "check":
         check(a.file)
     else:
