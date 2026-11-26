@@ -26,6 +26,9 @@ Form mapped on 2026-11-26 by reading an existing submission (read only).
 - The year field needs a full date. If the user only gives a year, the PDF metadata creation date (pypdf `reader.metadata`) is evidence-based; say which date you used.
 - File upload: the browser tool accepts up to 10 MB per call. Larger files (most Canva PDFs are 9 to 13 MB) must be attached by the user in the Keywords/Files tab.
 - Do not set a Research Lever or "edited by Science Writing" unless the user says so (both optional).
+- Selecting a project auto-completes fields from the project record (marked with a light-bulb icon). A project "Contributing to CGIAR Portfolio" ticks "Science Program(s) and Accelerator(s)" with its program, sets "Does this result contribute...?" to Yes and the detailed ToC mapping to Yes. Save Draft then fails with "Select the High Level Output for the Theory of Change mapping". Re-check these after choosing the project and set them to what the user said: answering "No" to the contribution question hides the ToC mapping, while the program stays tagged as the project's association.
+- AGROVOC terms can be stored with their preferred label (e.g. "capacity development" was saved as "Capacity building").
+- After Save Draft the page goes back to the submission list; the new draft is at the top with status Draft. Open /CgspaceSubmission/update/<id> and read the fields again on the loaded page (authors and corresponding author are filled by JavaScript, so a raw fetch of the HTML does not show them).
 
 ## Patterns from accepted submissions
 
