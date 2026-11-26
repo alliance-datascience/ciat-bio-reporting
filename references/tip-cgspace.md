@@ -17,6 +17,10 @@ Form mapped on 2026-11-26 by reading an existing submission (read only).
 
 ## Filling tips (learned 2026-11-26, first real run)
 
+- `scripts/tip_helpers.js` has tested helpers (s2pick, setSel, setText, addExt, noScienceProgram, attachServed, verifyDraft). Load it into the page with the javascript tool after each navigation, once the page has loaded for about 3 seconds.
+- The browser tool's file upload only reads files inside the session's folders. For files elsewhere (OneDrive project folders), use `scripts/serve_file.py` plus `attachServed`, whatever the size.
+- Partner authors may already exist in TIP as External records (e.g. 'Surname, Firstname - External - INSTITUTION'). Search first and reuse them; add a new external author only when nothing matches.
+
 - Every list is a select2. Plain lists (authorship, collection, type, languages, countries, regions, corresponding author, open access, usage rights) can be set with jQuery: `jQuery('#id').val([...]).trigger('change')`, choosing option values by their exact text. IDs: `first_name01` (title), `authorship_field`, `p_collection`, `p_type`, `c_author`, `abstract_field`, `date_publication` (YYYY-MM-DD), `languages`, `countries`, `regions`, `open_access`, `usage_rigth` (sic), `selectAgrovoc`, `selectAgrovocES`, `fileupload`.
 - Search lists (authors `find_author`, affiliations, project `find_project`, sponsors, AGROVOC) load results from the server: open with `jQuery(sel).select2('open')`, type at least 3 letters, read `.select2-results__option`, move with Down until `.select2-results__option--highlighted` is the right one, then press Return. Verify before each Return.
 - Staff directory names can differ from the document: e.g. "Wanjiku, Beatrice" is "Githu, Beatrice Wanjiku"; "Méndez, Andrés Camilo" is "Mendez Alzate, Andres Camilo" (External, found by searching the given names). Match by email when in doubt, and tell the user about the difference.
