@@ -53,7 +53,7 @@ scripts/tip_helpers.js    Browser-side helpers to fill and verify the TIP CGSpac
 ## Status
 
 - Formatting: tested with the real Report-Multifunctional Landscapes template (2026-11-26). Other templates are expected to share its structure; `inspect` confirms it on first use.
-- TIP: CGSpace form mapped and tested on 2026-11-26: five drafts saved with their PDFs (8.9 to 12.6 MB), including external partner authors. Dataverse, Innovation Dev, Capacity Sharing, OICR and Policy Change routes are not mapped yet.
+- TIP: CGSpace form mapped and tested on 2026-11-26: nine drafts saved (reports and bilingual infographics) with their PDFs (8.9 to 12.7 MB each, up to two per submission), including external partner authors. Dataverse, Innovation Dev, Capacity Sharing, OICR and Policy Change routes are not mapped yet.
 
 ## Known limitations
 

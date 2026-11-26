@@ -59,18 +59,41 @@ window.noScienceProgram = () => {
   const cb = document.getElementById('portfolio-has-programs-accelerators'); if (cb.checked) cb.click();
 };
 
-// Put a file served by scripts/serve_file.py into the file input (any size).
-window.attachServed = async (fileName, type = 'application/pdf') => {
-  const b = await fetch('http://127.0.0.1:8765/file').then(r => r.blob());
-  const dt = new DataTransfer(); dt.items.add(new File([b], fileName, {type}));
+// Search the staff/external directory for an exact "Surname, Firstname"; reuse it if found,
+// otherwise add a new external author. Avoids duplicate external records.
+window.findOrAdd = async (name, institution) => {
+  const r = await s2pick('#find_author', name.split(',')[0], t => t.startsWith(name + ' '));
+  return r.startsWith('OK') ? r : await addExt(name, institution);
+};
+
+// Put files served by scripts/serve_file.py into the file input (any size, several files).
+// files = [[port, fileName], ...]; run one serve_file.py per file, each on its own --port.
+window.attachServed = async (files, type = 'application/pdf') => {
+  if (typeof files === 'string') files = [[8765, files]];
+  const dt = new DataTransfer();
+  for (const [port, name] of files) { const b = await fetch('http://127.0.0.1:' + port + '/file').then(r => r.blob()); dt.items.add(new File([b], name, {type})); }
   document.getElementById('fileupload').files = dt.files;
   return Array.from(document.getElementById('fileupload').files).map(x => x.name + ' ' + x.size);
 };
 
+// The javascript tool gives up after 45 s, but the page keeps running the promise.
+// For long steps (a whole form, two 12 MB files), start them in the background and poll:
+//   runInBackground(() => fillSomething(...));   then later read window.__job
+window.runInBackground = fn => { window.__job = 'running'; fn().then(r => window.__job = r).catch(e => window.__job = 'ERROR ' + e.message); return 'started'; };
+
+// Stored file sizes without downloading them (fast; use this after saving).
+window.storedFileSizes = async () => {
+  const out = [];
+  for (const a of document.querySelectorAll('a[href*="/CgspaceSubmission/file"]')) { const r = await fetch(a.href, {method: 'HEAD', credentials: 'include'}); out.push(+r.headers.get('content-length')); }
+  return out;
+};
+
 // After Save Draft, open /CgspaceSubmission/update/<id> and run this to check what was stored.
+// expectedBytes: one number or an array (one per file).
 window.verifyDraft = async expectedBytes => {
-  const a = document.querySelector('a[href*="/CgspaceSubmission/file"]');
-  const size = a ? (await fetch(a.href, {credentials: 'include'}).then(r => r.blob())).size : null;
+  const sizes = await storedFileSizes();
+  const want = expectedBytes == null ? null : [].concat(expectedBytes);
+  const size = sizes;
   const sel = id => Array.from(document.getElementById(id).selectedOptions).map(o => o.text.trim());
   return {
     title: document.getElementById('first_name01').value,
@@ -82,7 +105,7 @@ window.verifyDraft = async expectedBytes => {
     sponsors: Array.from(document.querySelectorAll('#sponsors-div input')).filter(i => /\[name\]/.test(i.name)).map(i => i.value),
     sciencePrograms: sel('portfolio_programs_accelerators'), lever: sel('lever_field'), agrovoc: sel('selectAgrovoc'),
     ip: (document.querySelector('input[name=i_property]:checked') || {}).value,
-    fileBytes: size, sameFile: expectedBytes ? size === expectedBytes : undefined
+    fileBytes: size, sameFiles: want ? want.every(w => sizes.includes(w)) && sizes.length === want.length : undefined
   };
 };
 
