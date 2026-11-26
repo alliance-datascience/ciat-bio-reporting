@@ -29,6 +29,8 @@ try:
     from docx.table import Table
     from docx.text.paragraph import Paragraph
     from docx.text.run import Run
+    from docx.oxml.ns import nsmap as NSMAP
+    from lxml import etree
 except ImportError:
     sys.exit("python-docx is missing. Install it with: python3 -m pip install --user python-docx")
 
@@ -87,9 +89,15 @@ def open_doc(path):
     return Document(path)
 
 
+def xp(el, expr):
+    """XPath with explicit namespaces: works on any lxml element, including the ones
+    python-docx does not wrap (mc:AlternateContent, w14:*, custom XML...)."""
+    return etree._Element.xpath(el, expr, namespaces=NSMAP)
+
+
 def text_of(el):
     """All visible text of an element, text boxes included."""
-    return "".join(el.xpath(".//w:t/text()"))
+    return "".join(xp(el, ".//w:t/text()"))
 
 
 def norm(name):
@@ -99,16 +107,16 @@ def norm(name):
 
 
 def has_sectpr(el):
-    return el.tag == qn("w:p") and bool(el.xpath("./w:pPr/w:sectPr"))
+    return el.tag == qn("w:p") and bool(xp(el, "./w:pPr/w:sectPr"))
 
 
 def has_page_break(el):
     return el.tag == qn("w:p") and bool(
-        el.xpath('.//w:br[@w:type="page"]') or el.xpath("./w:pPr/w:pageBreakBefore"))
+        xp(el, './/w:br[@w:type="page"]') or xp(el, "./w:pPr/w:pageBreakBefore"))
 
 
 def is_separator(el):
-    return (el.tag == qn("w:p") and not text_of(el).strip() and not el.xpath(".//w:drawing")
+    return (el.tag == qn("w:p") and not text_of(el).strip() and not xp(el, ".//w:drawing")
             and (has_sectpr(el) or has_page_break(el)))
 
 
@@ -117,12 +125,12 @@ def body_elements(doc):
 
 
 def clear_paragraph(p_el):
-    for t in p_el.xpath(".//w:t"):
+    for t in xp(p_el, ".//w:t"):
         t.text = ""
 
 
 def set_text(p_el, new):
-    ts = p_el.xpath(".//w:t")
+    ts = xp(p_el, ".//w:t")
     if not ts:
         return False
     ts[0].text = new
@@ -169,7 +177,7 @@ def resolve_styles(doc):
 def table_style(doc, els, start, end):
     for el in els[start:end]:
         if el.tag == qn("w:tbl"):
-            v = el.xpath("./w:tblPr/w:tblStyle/@w:val")
+            v = xp(el, "./w:tblPr/w:tblStyle/@w:val")
             if v:
                 for st in doc.styles:
                     if st.style_id == v[0]:
@@ -193,7 +201,7 @@ def table_style(doc, els, start, end):
 def toc_end(els):
     """Index of the last element of the table of contents (TOC), or None."""
     for i, el in enumerate(els):
-        if el.tag == qn("w:sdt") and el.xpath('.//w:docPartGallery[@w:val="Table of Contents"]'):
+        if el.tag == qn("w:sdt") and xp(el, './/w:docPartGallery[@w:val="Table of Contents"]'):
             return i
     depth, inside = 0, False
     for i, el in enumerate(els):
@@ -216,7 +224,7 @@ def clear_toc(els):
     depth, toc_depth, in_result = 0, None, False
     for el in els:
         for p in el.iter(qn("w:p")):
-            style = p.xpath("./w:pPr/w:pStyle/@w:val")
+            style = xp(p, "./w:pPr/w:pStyle/@w:val")
             if style and re.match(r"(?i)^toc\d", style[0]):
                 clear_paragraph(p)
         for node in el.iter(qn("w:fldChar"), qn("w:instrText"), qn("w:t")):
@@ -269,7 +277,7 @@ def detect(doc, start_text=None, end_text=None):
             sys.exit("--end-text not found in the template: %r" % end_text)
         marks = cand[:1]
     else:
-        marks = [i for i in range(start, len(els)) if re.search(r"\bback page\b", txt[i], re.I)]
+        marks = [i for i in range(start, len(els)) if re.search(r"\bback page", txt[i], re.I)]
 
     # Each back page starts right after the last separator before its marker.
     blocks, frm = [], start
@@ -289,16 +297,16 @@ def detect(doc, start_text=None, end_text=None):
 # ---------------------------------------------------------------- reading the input
 
 def list_format(src, p):
-    if not p._p.xpath("./w:pPr/w:numPr"):
+    if not xp(p._p, "./w:pPr/w:numPr"):
         return None
-    ilvl = p._p.xpath("./w:pPr/w:numPr/w:ilvl/@w:val")
-    numid = p._p.xpath("./w:pPr/w:numPr/w:numId/@w:val")
+    ilvl = xp(p._p, "./w:pPr/w:numPr/w:ilvl/@w:val")
+    numid = xp(p._p, "./w:pPr/w:numPr/w:numId/@w:val")
     level = int(ilvl[0]) if ilvl else 0
     fmt = "bullet"
     try:
         numbering = src.part.numbering_part.element
-        abs_id = numbering.xpath('./w:num[@w:numId="%s"]/w:abstractNumId/@w:val' % numid[0])
-        f = numbering.xpath('./w:abstractNum[@w:abstractNumId="%s"]/w:lvl[@w:ilvl="%d"]/w:numFmt/@w:val'
+        abs_id = xp(numbering, './w:num[@w:numId="%s"]/w:abstractNumId/@w:val' % numid[0])
+        f = xp(numbering, './w:abstractNum[@w:abstractNumId="%s"]/w:lvl[@w:ilvl="%d"]/w:numFmt/@w:val'
                             % (abs_id[0], level))
         fmt = f[0] if f else "bullet"
     except Exception:
@@ -355,10 +363,10 @@ def plain_run(text):
 
 def run_images(src, run, stats):
     out = []
-    for rid in run._r.xpath(".//a:blip/@r:embed"):
+    for rid in xp(run._r, ".//a:blip/@r:embed"):
         try:
             blob = src.part.related_parts[rid].blob
-            cx = run._r.xpath(".//wp:extent/@cx")
+            cx = xp(run._r, ".//wp:extent/@cx")
             out.append({"t": "img", "blob": blob, "cx": int(cx[0]) if cx else None})
         except Exception:
             stats["lost_images"] += 1
@@ -369,8 +377,8 @@ def paragraph_blocks(src, p, mapping, stats):
     role = paragraph_role(src, p, mapping)
     if role == "skip":
         return []
-    stats["footnotes"] += len(p._p.xpath(".//w:footnoteReference"))
-    stats["text_boxes"] += len(p._p.xpath(".//w:txbxContent"))
+    stats["footnotes"] += len(xp(p._p, ".//w:footnoteReference"))
+    stats["text_boxes"] += len(xp(p._p, ".//w:txbxContent"))
     runs, imgs = [], []
     for item in p.iter_inner_content():
         if isinstance(item, Run):
@@ -418,7 +426,7 @@ def read_docx(path, mapping, stats):
             elif el.tag == qn("w:tbl"):
                 blocks.append(table_block(src, Table(el, src)))
             elif el.tag == qn("w:sdt"):
-                if el.xpath('.//w:docPartGallery[@w:val="Table of Contents"]'):
+                if xp(el, './/w:docPartGallery[@w:val="Table of Contents"]'):
                     continue
                 c = el.find(qn("w:sdtContent"))
                 if c is not None:
@@ -740,7 +748,7 @@ def apply(a):
     if a.title and not any(b["t"] == "par" and b["role"] == "title" for b in blocks[:3]):
         blocks.insert(0, {"t": "par", "role": "title", "runs": [plain_run(a.title)]})
 
-    sect = anchor if anchor.tag == qn("w:sectPr") else (anchor.xpath("./w:pPr/w:sectPr") or [None])[0]
+    sect = anchor if anchor.tag == qn("w:sectPr") else (xp(anchor, "./w:pPr/w:sectPr") or [None])[0]
     if sect is None:
         sect = doc.element.body.find(qn("w:sectPr"))
     s = Section(sect, doc.part)
@@ -807,8 +815,8 @@ def apply(a):
     body = doc.element.body
     final = body.find(qn("w:sectPr"))
     last = final.getprevious()
-    if last is not None and has_sectpr(last) and not text_of(last).strip() and not last.xpath(".//w:drawing"):
-        body.replace(final, last.xpath("./w:pPr/w:sectPr")[0])
+    if last is not None and has_sectpr(last) and not text_of(last).strip() and not xp(last, ".//w:drawing"):
+        body.replace(final, xp(last, "./w:pPr/w:sectPr")[0])
         body.remove(last)
     elif last is not None and is_separator(last):
         body.remove(last)
@@ -867,15 +875,15 @@ def inspect(path):
     print("\nBody elements:")
     for i, el in enumerate(els):
         tag = el.tag.split("}")[1]
-        style = el.xpath("./w:pPr/w:pStyle/@w:val")
+        style = xp(el, "./w:pPr/w:pStyle/@w:val")
         flags = []
         if has_sectpr(el):
             flags.append("SECTION-END")
         if has_page_break(el):
             flags.append("PAGE-BREAK")
-        if el.xpath(".//w:drawing"):
+        if xp(el, ".//w:drawing"):
             flags.append("DRAWING")
-        if el.xpath(".//w:txbxContent"):
+        if xp(el, ".//w:txbxContent"):
             flags.append("TEXT-BOX")
         zone = "cover/toc" if i < info["start"] else ("sample" if i < info["end"] else "back page")
         print("  %3d %-4s %-10s %-24s %-24s %s" % (i, tag, zone, (style[0] if style else "")[:24],
@@ -920,7 +928,7 @@ def check(path):
             empty += 1
     print("File: %s" % path)
     print("Paragraphs: %d  Tables: %d  Images: %d" % (
-        len(doc.paragraphs), len(doc.tables), len(doc.element.body.xpath(".//a:blip"))))
+        len(doc.paragraphs), len(doc.tables), len(xp(doc.element.body, ".//a:blip"))))
     headings = [p.text.strip()[:70] for p in content
                 if p.style is not None and re.match(r"(heading|title|body heading)", norm(p.style.name))
                 and p.text.strip()]

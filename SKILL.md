@@ -42,7 +42,7 @@ Read [references/formatting.md](references/formatting.md) and follow it. In shor
 
 1. Is it already final (PDF or final Word)? If yes, go to Step 3.
 2. Is it from a Science Program or Accelerator, or from another project?
-   - Science Program or Accelerator: ask which one (list in [references/templates.md](references/templates.md)) and use its template.
+   - Science Program or Accelerator: ask which one (list in [references/templates.md](references/templates.md)) and use its template. Download only that template, with the user's permission, as templates.md explains.
    - Another project: ask whether they have the project's or donor's template. If yes, ask them to share it. If not, show the general template options from references/templates.md and let them choose.
 3. Run `scripts/format_report.py` and check the result with its `check` command.
 4. Deliver the Word file and ask whether they want to submit it to TIP.

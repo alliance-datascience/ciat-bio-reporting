@@ -17,7 +17,7 @@ Never modify the user's original file. The output goes next to the original with
 
 ## 2. Choose the template
 
-See templates.md. If the template is new in this session, inspect it first:
+See templates.md: look for it locally and, if needed, download only that template. If the template is new in this session, inspect it first:
 
 ```bash
 PY scripts/format_report.py inspect "<template.dotx>"
@@ -74,7 +74,7 @@ PY scripts/convert.py preview "<result.docx>" --outdir "<working folder>"
 
 - Footnotes and text boxes from the original document are not copied; the script counts them and warns. They have to be moved by hand.
 - Numbered lists follow the template style's numbering; separate lists may not restart at 1.
-- Tested with a synthetic template that mimics Report-Climate Action. Still to be tested with the real templates: run `inspect` on each the first time and adjust if something is not detected.
+- Tested with the real Report-Multifunctional Landscapes template. Run `inspect` on any other template the first time and adjust if something is not detected.
 
 ## 6. Deliver
 

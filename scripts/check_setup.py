@@ -2,6 +2,7 @@
 """Check whether this computer has what the ciat-bio-reporting skill needs. Standard library only.
 
 Usage:  check_setup.py [--need format|tip|both]
+        check_setup.py --templates     List templates already on this computer
 
 Prints one line per requirement (OK, MISSING or OPTIONAL) and, for anything missing, the
 install command for this operating system. Exit code 0 if every required item is present,
@@ -50,8 +51,18 @@ def onedrive_roots():
     return out
 
 
+CACHE = os.path.join(os.path.expanduser("~"), ".ciat-bio-reporting", "templates")
+
+
+def cached_templates():
+    if not os.path.isdir(CACHE):
+        return []
+    return sorted(os.path.join(CACHE, f) for f in os.listdir(CACHE)
+                  if f.lower().endswith((".docx", ".dotx")) and not f.startswith("~$"))
+
+
 def find_templates(max_depth=5):
-    """Folder that holds the Report-<Program> templates, or None. Does not download cloud files."""
+    """OneDrive folder with the Report-<Program> templates, or None. Does not download cloud files."""
     for root in onedrive_roots():
         base_depth = root.rstrip(os.sep).count(os.sep)
         for dirpath, dirnames, filenames in os.walk(root):
@@ -100,7 +111,20 @@ def install_hint(item):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--need", choices=["format", "tip", "both"], default="both")
+    ap.add_argument("--templates", action="store_true", help="list templates already on this computer")
     a = ap.parse_args()
+
+    if a.templates:
+        print("Template cache: %s" % CACHE)
+        for f in cached_templates():
+            print("  %s  (%.1f MB)" % (os.path.basename(f), os.path.getsize(f) / 1e6))
+        od = find_templates()
+        print("OneDrive shortcut to '2. Word templates': %s" % (od or "none"))
+        if od:
+            for f in sorted(os.listdir(od)):
+                if f.startswith("Report-"):
+                    print("  %s" % f)
+        return
 
     rows, missing = [], []
     print("System: %s %s, Python %s" % (SYSTEM, platform.release(), platform.python_version()))
@@ -117,12 +141,9 @@ def main():
         if not good:
             missing.append(("python-docx", install_hint("python-docx")))
 
-        t = find_templates()
-        rows.append(("OK" if t else "MISSING", "CGIAR Word templates in OneDrive", t or "not found"))
-        if not t:
-            missing.append(("Shortcut to the CGIAR '2. Word templates' folder in OneDrive",
-                            "No install needed: open https://cgiar.sharepoint.com/sites/My-CGIAR/SOCOMMS/"
-                            "Brand%20Assets/Final%20Assets/2.%20Word%20templates and click 'Add shortcut to My files'"))
+        n = len(cached_templates())
+        rows.append(("INFO", "Templates on this computer",
+                     "%d in %s (the skill downloads the one it needs)" % (n, CACHE)))
 
         c = converter()
         rows.append(("OK" if c else "OPTIONAL", "Converter for .doc/.rtf/.odt and previews",

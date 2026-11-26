@@ -30,14 +30,14 @@ For TIP, also check the browser yourself: call the Claude in Chrome tab tool. If
 |---|---|---|---|
 | Python 3.8 or newer | Formatting | Yes | Often yes on managed computers |
 | python-docx 1.0 or newer | Formatting | Yes | No (`--user` install), unless pip is blocked |
-| Shortcut to the CGIAR "2. Word templates" folder in OneDrive | Formatting with CGIAR templates | Yes | No: the user does it in SharePoint |
+| The Word template the user needs | Formatting | Yes, downloaded on demand (see templates.md) | No |
 | A converter: Microsoft Word (Windows), textutil (macOS, built in) or LibreOffice | Converting .doc/.rtf/.odt and making previews | Optional | Only for installing LibreOffice |
 | Google Chrome with the Claude in Chrome extension | TIP | Yes | Sometimes, depending on IT policy |
 | Access to TIP with the user's CGIAR account | TIP | Yes | No |
 
 ## 3. If something is missing
 
-Items that need no admin rights (the OneDrive shortcut, signing in to TIP): explain to the user how to do it and continue.
+Items that need no admin rights (downloading a template, signing in to TIP): explain to the user how to do it and continue.
 
 For software, ask with AskUserQuestion: "Do you have administrator rights on this computer?"
 - Yes, help me install: show the exact install command from check_setup.py, run it after the user approves, and run the check again.

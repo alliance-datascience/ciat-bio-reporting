@@ -30,7 +30,7 @@ Then, in Claude Code, type `/ciat-bio-reporting` or ask, for example, "format th
 The skill checks these at the start (`scripts/check_setup.py`) and, if something is missing, helps install it or drafts a request to Alliance IT Support.
 
 - Python 3.8 or newer, with python-docx 1.0 or newer.
-- A OneDrive shortcut to the CGIAR "2. Word templates" folder (SharePoint My-CGIAR, SOCOMMS/Brand Assets/Final Assets).
+- Access to the CGIAR "2. Word templates" folder (SharePoint My-CGIAR, SOCOMMS/Brand Assets/Final Assets). The skill downloads only the template you need, with your permission, into `~/.ciat-bio-reporting/templates/`.
 - Optional: Microsoft Word (Windows), textutil (macOS, built in) or LibreOffice, to convert older files and preview results.
 - For TIP: Google Chrome with the Claude in Chrome extension, and a CGIAR account with access to TIP.
 
@@ -50,7 +50,7 @@ scripts/format_report.py  Applies a Word template to a .docx or .md document
 
 ## Status
 
-- Formatting: tested with a synthetic template that mimics Report-Climate Action. To be validated with the real templates.
+- Formatting: tested with the real Report-Multifunctional Landscapes template (2026-11-26). Other templates are expected to share its structure; `inspect` confirms it on first use.
 - TIP: CGSpace form mapped; not yet tested end to end. Dataverse, Innovation Dev, Capacity Sharing, OICR and Policy Change routes are not mapped yet.
 
 ## Known limitations
