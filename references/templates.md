@@ -61,7 +61,7 @@ When the project has no template of its own, show these options and let the user
 Checked on the real Report-Multifunctional Landscapes.docx on 2026-11-26 (`format_report.py inspect`). Run `inspect` on any other template the first time it is used.
 
 1. Cover: a content control with images, holding the sample texts "Document Title", "Date" and "Document Description" (styles _Cover Title, _Cover Date, _Cover Text).
-2. Table of contents: "Contents" heading and a TOC field.
+2. Table of contents: "Contents" heading and a TOC field that lists only "_Title" (`TOC \h \z \t "_Title,1"`). format_report.py rewrites it to list _Heading 1 and _Heading 2 (`--toc-levels`).
 3. Style sample page: _Title, _Subtitle, _Heading 1, _Heading 2, _Body Intro, _Body Text, _Body Heading, _Body bullet 1 and 2, _Body Bullet Numbered 1 and 2, _Stat, _Caption, _Pullout, _Source, _Quote.
 4. Table sample page, with table style "CGIAR" and table paragraph styles (_Table Title, _Table Column Heading, _Table Body, _Table Subheading, _Table Total).
 5. Two back pages, built as tables with images: "Back Page" (simple) and "Back Page With Programs", with Latin filler text.

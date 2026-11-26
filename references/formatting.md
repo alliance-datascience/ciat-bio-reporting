@@ -52,13 +52,14 @@ PY scripts/format_report.py apply \
   --title "<title>" --date "<date>" --description "<description>" \
   --numbering auto|none|original \
   --back-page programs|simple|none
+  --toc-levels 2          (heading levels in the table of contents; 0 keeps the template's own TOC)
 ```
 
 What it does:
 - Fills in the cover and keeps the template's table of contents.
 - Removes the sample pages (styles, tables, Latin filler).
 - Brings the content over with the template styles: titles, headings, paragraphs, bullets, numbered lists, quotes, captions, tables, images, bold, italics and links.
-- Tells Word to update the table of contents when the file is opened.
+- Points the table of contents at the report's heading styles (h1 and h2 by default), because some brand templates list only their "_Title" style there (MFL does), and tells Word to update it when the file is opened.
 
 For another project's template without the CGIAR markers, use `--start-text` (first sample paragraph to replace), `--end-text` (first paragraph to keep at the end) and `--replace "sample text=new text"` for its cover.
 

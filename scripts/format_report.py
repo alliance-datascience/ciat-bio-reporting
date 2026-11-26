@@ -245,6 +245,39 @@ def clear_toc(els):
                 node.text = ""
 
 
+def set_toc_levels(els, styles, levels):
+    """Point the TOC field at the headings the content uses.
+
+    Some brand templates list only their "_Title" style in the TOC (MFL: TOC \\t "_Title,1"),
+    so the report's sections never show up. Rewrite the field so it lists the h1 and h2
+    styles (and h3 if levels == 3). Returns the new instruction, or None if there is no TOC.
+    """
+    pairs = []
+    for lvl, role in enumerate(("h1", "h2", "h3")[:levels], 1):
+        if styles.get(role):
+            pairs.append("%s,%d" % (styles[role], lvl))
+    if not pairs:
+        return None
+    instr = ' TOC \\h \\z \\t "%s" ' % ",".join(pairs)
+    depth, toc_depth, done = 0, None, None
+    for el in els:
+        for node in el.iter(qn("w:fldChar"), qn("w:instrText")):
+            if node.tag == qn("w:fldChar"):
+                kind = node.get(qn("w:fldCharType"))
+                if kind == "begin":
+                    depth += 1
+                elif kind in ("separate", "end") and toc_depth == depth:
+                    toc_depth = None
+                if kind == "end":
+                    depth -= 1
+            elif toc_depth == depth:
+                node.text = ""  # rest of a TOC instruction split over several runs
+            elif re.match(r"\s*TOC\b", node.text or "") and done is None:
+                node.text = instr
+                toc_depth, done = depth, instr
+    return done
+
+
 def detect(doc, start_text=None, end_text=None):
     els = body_elements(doc)
     txt = [text_of(e) for e in els]
@@ -915,6 +948,8 @@ def apply(a):
 
     # 2. Table of contents: clear sample entries and ask Word to update fields on open.
     clear_toc(els[: info["start"]])
+    if a.toc_levels and not set_toc_levels(els[: info["start"]], styles, a.toc_levels):
+        stats["warnings"].append("Table of contents: no TOC field or no heading styles found; left as is.")
     for fc in doc.element.body.iter(qn("w:fldChar")):
         if fc.get(qn("w:fldCharType")) == "begin":
             fc.set(qn("w:dirty"), "true")
@@ -1194,6 +1229,8 @@ def main():
     s.add_argument("--description")
     s.add_argument("--numbering", choices=["auto", "none", "original"], default="original")
     s.add_argument("--back-page", choices=["programs", "simple", "none"], default="programs")
+    s.add_argument("--toc-levels", type=int, choices=[0, 1, 2, 3], default=2,
+                   help="Heading levels listed in the table of contents (0 = keep the template's TOC as is)")
     s.add_argument("--map", action="append", help='"Document style=role"')
     s.add_argument("--replace", action="append", help='"sample text=new text" (whole paragraph)')
     s.add_argument("--start-text", help="Text of the first sample paragraph to replace")
