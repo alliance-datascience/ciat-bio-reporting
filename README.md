@@ -9,9 +9,19 @@ It replies in the language the user writes in and works on Windows, macOS and Li
 
 ## Install
 
-Copy the `ciat-bio-reporting` folder to one of:
-- `~/.claude/skills/` to use it in every project, or
-- `<project>/.claude/skills/` to use it in one project.
+Clone this repository into your Claude Code skills folder (you need access to the alliance-datascience organization):
+
+```bash
+# macOS / Linux
+git clone https://github.com/alliance-datascience/ciat-bio-reporting.git ~/.claude/skills/ciat-bio-reporting
+```
+
+```powershell
+# Windows (PowerShell)
+git clone https://github.com/alliance-datascience/ciat-bio-reporting.git "$env:USERPROFILE\.claude\skills\ciat-bio-reporting"
+```
+
+To update later, run `git pull` inside that folder. To use it in a single project only, clone it into `<project>/.claude/skills/ciat-bio-reporting` instead.
 
 Then, in Claude Code, type `/ciat-bio-reporting` or ask, for example, "format this report with the Climate Action template" or "submit this repository to TIP".
 
