@@ -1,11 +1,11 @@
 # Missing requirements
 
-Read only when `check_setup.py` reports MISSING. If no `python3`, `py` or `python --version` answers, Python is missing.
+Read only when `check_setup.py` reports MISSING. If no `python3`, `py` or `python --version` answers, Python is missing. If several Pythons exist (macOS: Homebrew and the system one), the skill uses the first `python3` on the PATH; install python-docx for that one (`python3 -c "import sys; print(sys.executable)"`).
 
 | Item | For | Admin rights? |
 |---|---|---|
 | Python 3.8+ | Formatting | Often, on managed computers |
-| python-docx 1.0+ | Formatting | No: `PY -m pip install --user python-docx` |
+| python-docx 1.0+ | Formatting | No: `PY -m pip install --user python-docx`. Homebrew Python (macOS) and recent Linux refuse it ("externally-managed-environment", PEP 668): add `--break-system-packages`; with `--user` it installs only in the user's folder, not in the system packages. check_setup.py prints the right command |
 | Microsoft Word, textutil (macOS) or LibreOffice | Conversion, PDF | Only to install LibreOffice |
 | Chrome with Claude in Chrome | TIP | Sometimes |
 | TIP access (CGIAR account) | TIP | No |

@@ -29,7 +29,7 @@ Then, in Claude Code, type `/ciat-bio-reporting` or ask, for example, "format th
 
 The skill checks these at the start (`scripts/check_setup.py`) and, if something is missing, helps install it or drafts a request to Alliance IT Support.
 
-- Python 3.8 or newer, with python-docx 1.0 or newer.
+- Python 3.8 or newer, with python-docx 1.0 or newer. On Homebrew Python (macOS) or recent Linux, install it with `python3 -m pip install --user --break-system-packages python-docx` (user folder only; no admin rights).
 - Access to the CGIAR "2. Word templates" folder (SharePoint My-CGIAR, SOCOMMS/Brand Assets/Final Assets). The skill downloads only the template you need, with your permission, into `~/.ciat-bio-reporting/templates/`.
 - Optional: Microsoft Word (Windows), textutil (macOS, built in) or LibreOffice, to convert older files and preview results.
 - For TIP: Google Chrome with the Claude in Chrome extension, and a CGIAR account with access to TIP.

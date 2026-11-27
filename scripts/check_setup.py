@@ -87,7 +87,17 @@ def converter():
     return None
 
 
+def externally_managed():
+    """True for Pythons that refuse plain pip installs (PEP 668): Homebrew on macOS, recent Linux."""
+    import sysconfig
+    return os.path.exists(os.path.join(sysconfig.get_paths()["stdlib"], "EXTERNALLY-MANAGED"))
+
+
 def install_hint(item):
+    if item == "python-docx" and externally_managed():
+        # The user site (--user) is outside the system or Homebrew packages, so this does not
+        # break them; pip only needs the flag to allow it. No admin rights needed.
+        return "%s -m pip install --user --break-system-packages python-docx" % ("py" if SYSTEM == "Windows" else "python3")
     hints = {
         "python": {
             "Windows": "winget install Python.Python.3.12   (or the python.org installer, option 'Install for me only')",
