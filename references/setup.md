@@ -1,78 +1,42 @@
-# Setup check
+# Missing requirements
 
-Run this once per session, before the first task, and only for what the user needs (formatting, TIP, or both).
+Read only when `check_setup.py` reports MISSING. If no `python3`, `py` or `python --version` answers, Python is missing.
 
-## 1. Is Python there?
+| Item | For | Admin rights? |
+|---|---|---|
+| Python 3.8+ | Formatting | Often, on managed computers |
+| python-docx 1.0+ | Formatting | No: `PY -m pip install --user python-docx` |
+| Microsoft Word, textutil (macOS) or LibreOffice | Conversion, PDF | Only to install LibreOffice |
+| Chrome with Claude in Chrome | TIP | Sometimes |
+| TIP access (CGIAR account) | TIP | No |
 
-Try, in this order, until one answers with a version:
+TIP: if the Chrome tab tool fails, the extension is missing or disconnected. If TIP asks to sign in, the user does it.
 
-```bash
-python3 --version      # macOS, Linux
-py --version           # Windows
-python --version       # Windows, other setups
-```
+Ask with AskUserQuestion: "Do you have administrator rights on this computer?"
+- Yes: show the install command check_setup.py printed, run it after the user approves, check again.
+- Not sure: try the `--user` installs; on a permission or policy error, go to the email.
+- No: the email.
 
-Use whichever answers for every later command (`PY` below). If none answers, Python is missing: go to step 3.
+Never work around IT restrictions.
 
-## 2. Run the check
-
-```bash
-PY scripts/check_setup.py --need format|tip|both
-```
-
-It prints OK, MISSING, OPTIONAL or CHECK per item and, for anything missing, the install command for this operating system. Exit code 1 means something required is missing.
-
-For TIP, also check the browser yourself: call the Claude in Chrome tab tool. If it fails, the extension is missing or not connected. Then open https://tip.alliance.cgiar.org/Dashboard: if it asks for a login, the user signs in themselves.
-
-## What is required
-
-| Item | Needed for | Required? | Admin rights usually needed? |
-|---|---|---|---|
-| Python 3.8 or newer | Formatting | Yes | Often yes on managed computers |
-| python-docx 1.0 or newer | Formatting | Yes | No (`--user` install), unless pip is blocked |
-| The Word template the user needs | Formatting | Yes, downloaded on demand (see templates.md) | No |
-| A converter: Microsoft Word (Windows), textutil (macOS, built in) or LibreOffice | Converting .doc/.rtf/.odt and making previews | Optional | Only for installing LibreOffice |
-| Google Chrome with the Claude in Chrome extension | TIP | Yes | Sometimes, depending on IT policy |
-| Access to TIP with the user's CGIAR account | TIP | Yes | No |
-
-## 3. If something is missing
-
-Items that need no admin rights (downloading a template, signing in to TIP): explain to the user how to do it and continue.
-
-For software, ask with AskUserQuestion: "Do you have administrator rights on this computer?"
-- Yes, help me install: show the exact install command from check_setup.py, run it after the user approves, and run the check again.
-- I'm not sure: try first the installs that do not need admin (`PY -m pip install --user python-docx`). If that or anything else fails with a permission or policy error, go to the email.
-- No: write the email below.
-
-Never try to work around IT restrictions (no portable installs from unofficial sources, no disabling security settings).
-
-## 4. Email to IT
-
-Write the draft in the user's language, filled in with what check_setup.py reported as missing and the operating system it printed. Show it in the chat for the user to copy and send. Claude does not send it.
+Email (draft in the user's language, with the missing items and the OS check_setup.py printed; the user sends it, Claude never does; offer a mailto link if they prefer):
 
 ```
 To: Alliance-IT Support (Alliance Bioversity-CIAT) <Alliance-ITsupport@cgiar.org>
-Subject: Software installation request: <list of missing items>
+Subject: Software installation request: <items>
 
 Dear IT Support team,
 
-I would like to request the installation of the following software on my work computer, which I need to prepare and submit knowledge products (reports, briefs and other outputs) to TIP and CGSpace using the official CGIAR templates:
+I would like to request the installation of the following software on my work computer. I need it to prepare and submit knowledge products to TIP and CGSpace with the official CGIAR templates:
 
-- <item 1, e.g. Python 3.12 (python.org)>
-- <item 2, e.g. the python-docx library for Python>
-- <item 3, e.g. LibreOffice (optional, to convert older Word files)>
+- <item, e.g. Python 3.12 (python.org)>
+- <item, e.g. the python-docx library for Python>
 
-Computer details:
-- Operating system: <e.g. Windows 11 / macOS 15>
-- Computer name or asset tag: <the user fills this in>
+Operating system: <OS>
+Computer name or asset tag: <fill in>
 
-I do not have administrator rights on this computer, so I cannot install them myself.
+I do not have administrator rights, so I cannot install them myself.
 
 Thank you very much,
 <Name>
-<Unit / team>
 ```
-
-If the user prefers, offer a mailto link with the subject filled in, so it opens in their email program.
-
-Once IT installs the software, run step 2 again before continuing.

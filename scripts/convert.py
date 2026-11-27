@@ -287,7 +287,9 @@ def main():
         if not out:
             sys.exit("No PDF converter available on this computer (%s). Ask the user to open the Word file, "
                      "answer yes to update fields, and use File > Save As > PDF." % SYSTEM)
-        print("PDF made with %s (%.1f MB): %s" % (tool, os.path.getsize(out) / 1048576, out))
+        with open(out, "rb") as fh:
+            pages = len(re.findall(rb"/Type\s*/Page[^s]", fh.read()))
+        print("PDF made with %s (%d pages, %.1f MB): %s" % (tool, pages, os.path.getsize(out) / 1048576, out))
         return
     if a.cmd == "to-docx":
         out, tool = to_docx(a.file, a.output)

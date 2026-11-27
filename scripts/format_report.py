@@ -1118,24 +1118,26 @@ def apply(a):
 
 # ---------------------------------------------------------------- inspect / structure / check
 
-def inspect(path):
+def inspect(path, full=False):
     doc = open_doc(path)
     st_map = resolve_styles(doc)
     info = detect(doc)
     els = info["els"]
     kinds = {1: "paragraph", 2: "character", 3: "table", 4: "list"}
     print("Template: %s" % path)
-    print("\nBrand styles (starting with _):")
-    for st in doc.styles:
-        try:
-            if (st.name or "").startswith("_"):
-                print("  [%s] %s" % (kinds.get(st.type, st.type), st.name))
-        except Exception:
-            pass
-    print("\nRole -> style that will be used:")
-    for role in ROLES:
-        print("  %-9s %s" % (role, st_map[role] or "MISSING (body style will be used)"))
-    print("\nCover (sample texts): %s" % (", ".join(t for _, t in info["cover"]) or "not found"))
+    if full:
+        print("\nBrand styles (starting with _):")
+        for st in doc.styles:
+            try:
+                if (st.name or "").startswith("_"):
+                    print("  [%s] %s" % (kinds.get(st.type, st.type), st.name))
+            except Exception:
+                pass
+    print("Roles: %s" % "; ".join("%s=%s" % (r, st_map[r]) for r in ROLES if st_map[r]))
+    missing = [r for r in ROLES if not st_map[r]]
+    if missing:
+        print("MISSING roles (body style will be used): %s" % ", ".join(missing))
+    print("Cover (sample texts): %s" % (", ".join(t for _, t in info["cover"]) or "not found"))
     print("Table of contents: %s" % ("yes, ends at element %d" % info["toc"] if info["toc"] is not None else "not found"))
     print("Sample body to replace: elements %d to %d" % (info["start"], info["end"] - 1))
     print("Table style: %s" % (table_style(doc, els, info["start"], info["end"]) or "none"))
@@ -1143,6 +1145,9 @@ def inspect(path):
     for k, b in enumerate(info["back_pages"]):
         print("  %d) elements %d to %d, %s" % (k + 1, b["from"], b["to"] - 1,
                                               "with programs" if b["programs"] else "simple"))
+    if not full:
+        print("(--list prints the brand styles and every body element)")
+        return
     print("\nBody elements:")
     for i, el in enumerate(els):
         tag = el.tag.split("}")[1]
@@ -1161,14 +1166,14 @@ def inspect(path):
                                                    " ".join(flags), text_of(el).strip()[:60]))
 
 
-def structure(path, map_args, html_skip=(), html_skip_containing=()):
+def structure(path, map_args, html_skip=(), html_skip_containing=(), full=False):
     stats = new_stats()
     blocks = read_input(path, parse_pairs(map_args), stats, html_skip, html_skip_containing)
     count = {}
     for b in blocks:
         if b["t"] == "par":
             count[b["role"]] = count.get(b["role"], 0) + 1
-            if b["role"] in HEADING_ROLES or b["role"] == "caption":
+            if b["role"] in (HEADING_ROLES + ("caption",) if full else ("title", "h1", "h2")):
                 print("  %-8s %s" % (b["role"], "".join(r["text"] for r in b["runs"])[:90]))
         else:
             count[b["t"]] = count.get(b["t"], 0) + 1
@@ -1180,7 +1185,7 @@ def structure(path, map_args, html_skip=(), html_skip_containing=()):
               "pass them with --map \"Style name=h1\".")
 
 
-def check(path):
+def check(path, full=False):
     doc = Document(path)
     leftovers, foreign, empty = [], {}, 0
     for p in doc.element.body.iter(qn("w:p")):
@@ -1203,9 +1208,17 @@ def check(path):
     headings = [p.text.strip()[:70] for p in content
                 if p.style is not None and re.match(r"(heading|title|body heading)", norm(p.style.name))
                 and p.text.strip()]
-    print("Headings (%d):" % len(headings))
-    for t in headings:
-        print("  " + t)
+    levels = {}
+    for p in content:
+        n = p.style.name if p.style is not None else ""
+        if p.text.strip() and re.match(r"(heading|title|body heading)", norm(n)):
+            levels[n] = levels.get(n, 0) + 1
+    toc = [p for p in doc.paragraphs if p.style is not None and norm(p.style.name).startswith("toc") and p.text.strip()]
+    print("Headings: %s" % (", ".join("%s=%d" % kv for kv in sorted(levels.items())) or "none"))
+    print("Table of contents entries: %d%s" % (len(toc), "" if toc else " (empty: run convert.py refresh, or Word asks to update fields)"))
+    if full:
+        for t in headings:
+            print("  " + t)
     if leftovers:
         print("WARNING: sample text left over (%d):" % len(leftovers))
         for t in leftovers[:20]:
@@ -1223,13 +1236,16 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("inspect", help="show what the script detects in a template")
     s.add_argument("template")
+    s.add_argument("--list", action="store_true", help="also print brand styles and body elements")
     s = sub.add_parser("structure", help="show how an input document will be read")
     s.add_argument("input")
+    s.add_argument("--list", action="store_true", help="also print h3 headings and captions")
     s.add_argument("--map", action="append", help='"Document style=role" (roles: %s)' % ", ".join(ROLES))
     s.add_argument("--html-skip", action="append", help="HTML input: id of an element to leave out (repeatable)")
     s.add_argument("--html-skip-containing", action="append", help="HTML input: leave out text boxes containing this text (repeatable)")
     s = sub.add_parser("check", help="review a formatted result")
     s.add_argument("file")
+    s.add_argument("--list", action="store_true", help="also print every heading")
     s = sub.add_parser("apply", help="format a document with a template")
     s.add_argument("--template", required=True)
     s.add_argument("--input")
@@ -1251,11 +1267,11 @@ def main():
     s.add_argument("--html-skip-containing", action="append", help="HTML input: leave out text boxes containing this text (repeatable)")
     a = ap.parse_args()
     if a.cmd == "inspect":
-        inspect(a.template)
+        inspect(a.template, a.list)
     elif a.cmd == "structure":
-        structure(a.input, a.map, a.html_skip or (), a.html_skip_containing or ())
+        structure(a.input, a.map, a.html_skip or (), a.html_skip_containing or (), a.list)
     elif a.cmd == "check":
-        check(a.file)
+        check(a.file, a.list)
     else:
         if a.input and os.path.abspath(a.output) == os.path.abspath(a.input):
             sys.exit("The output cannot be the input file.")
