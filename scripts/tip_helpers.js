@@ -68,9 +68,9 @@ window.storedFileSizes = async () => {
   return out;
 };
 
-// Filled values only, as compact JSON (empty fields are left out).
+// Filled values only, as compact JSON (empty fields are left out). Tested 2026-11-27.
 window.formState = () => {
-  const sel = id => { const e = document.getElementById(id); return e ? [...e.selectedOptions].map(o => o.text.trim()).filter(Boolean) : []; };
+  const sel = id => { const e = document.getElementById(id); return e ? [...e.selectedOptions].filter(o => o.value !== '' && !/^select$/i.test(o.text.trim())).map(o => o.text.trim()) : []; };
   const val = id => (document.getElementById(id) || {}).value;
   const names = div => [...document.querySelectorAll(div + ' input')].filter(i => /\[name\]/.test(i.name)).map(i => i.value);
   const s = {
@@ -87,24 +87,34 @@ window.formState = () => {
   return s;
 };
 
-// Required labels ("*") in tabs A to D whose field is still empty. NOT YET TESTED on TIP (2026-11-27):
-// if the result looks wrong, read the labels of each #section-X-container instead.
-window.missingRequired = () => {
-  const empty = c => {
-    if (!c) return true;
-    if (c.type === 'radio' || c.type === 'checkbox') return !document.querySelector('input[name="' + c.name + '"]:checked');
-    if (c.tagName === 'SELECT') return ![...c.selectedOptions].some(o => o.value !== '');
+// Required questions ("*") in tabs A to D whose answer is still empty. Questions hidden inside their
+// tab (conditional branches) are skipped. missingRequired(true) shows the control found for each.
+// Tested 2026-11-27 on /create (16 required on an empty form).
+window.missingRequired = (debug) => {
+  const CTRL = 'select, textarea, input:not([type=hidden]):not(.select2-search__field):not([type=button]):not([type=submit])';
+  const isEmpty = (c, holder) => {
+    if (c.type === 'checkbox') return !holder.querySelector('input[type=checkbox]:checked');
+    if (c.type === 'radio') return !document.querySelector('input[name="' + c.name + '"]:checked');
+    if (c.tagName === 'SELECT') return ![...c.selectedOptions].some(o => o.value !== '' && !/^select$/i.test(o.text.trim()));
     return !String(c.value || '').trim();
   };
+  const hidden = (e, sec) => { for (let p = e; p && p !== sec; p = p.parentElement) if (getComputedStyle(p).display === 'none') return true; return false; };
   const out = [];
   for (const x of 'ABCD') {
     const sec = document.getElementById('section-' + x + '-container'); if (!sec) continue;
-    for (const l of sec.querySelectorAll('label')) {
-      const text = _t(l); if (!text.includes('*')) continue;
-      let c = l.htmlFor && document.getElementById(l.htmlFor);
-      for (let p = l.parentElement; !c && p && p !== sec; p = p.parentElement) c = p.querySelector('select, textarea, input:not([type=hidden]):not(.select2-search__field)');
-      if (c && c.closest('[style*="display: none"]') && !c.classList.contains('select2-hidden-accessible')) continue; // hidden branch
-      if (empty(c)) out.push(x + ': ' + text.replace(/\s*\*\s*/, '').slice(0, 80));
+    const qs = [...sec.querySelectorAll('h6, label, p')].filter(q => { const t = _t(q); return t.length > 1 && t.length < 220 && /\*$/.test(t); });
+    for (const q of qs) {
+      if (qs.some(o => o !== q && q.contains(o)) || hidden(q, sec)) continue;
+      const label = x + ': ' + _t(q).replace(/\s*\*\s*/g, ' ').trim().slice(0, 60);
+      let c = null, holder = null, empty;
+      if (/^Author\(s\)/.test(_t(q))) { empty = document.querySelectorAll('#c_author option').length < 2; c = 'authors'; }
+      else {
+        for (let n = q.nextElementSibling; !c && n && !qs.some(o => n === o || n.contains(o)); n = n.nextElementSibling) { c = n.matches(CTRL) ? n : n.querySelector(CTRL); holder = n; }
+        for (let box = q.parentElement; !c && box && box !== sec; box = box.parentElement) { const others = qs.some(o => o !== q && box.contains(o)); c = others ? null : box.querySelector(CTRL); holder = box; if (others) break; }
+        empty = !c || isEmpty(c, holder);
+      }
+      if (debug) out.push(label + ' -> ' + (c ? (c.id || c.name || c.tagName || c) : 'NO CONTROL') + (empty ? ' EMPTY' : ' ok'));
+      else if (empty) out.push(label);
     }
   }
   return out;
